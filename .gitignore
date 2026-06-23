@@ -1,0 +1,36 @@
+# Maven build output
+bookkeeping-backend/target/
+bookkeeping-backend/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+bookkeeping-frontend/node_modules/
+bookkeeping-frontend/dist/
+bookkeeping-frontend/.vite/
+
+# IDE — IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE — VS Code (keep extensions/tasks, ignore personal settings)
+.vscode/settings.json
+
+# Environment / secrets — never commit these
+*.env
+*.env.local
+*.env.production
+application-prod.yml
+application-local.yml
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled class files
+*.class
