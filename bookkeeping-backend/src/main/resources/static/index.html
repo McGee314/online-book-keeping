@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Online Bookkeeping System</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(920px, 100%);
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    p { color: var(--muted); line-height: 1.6; }
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .panel {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    code, pre {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #cbd5e1;
+    }
+    pre {
+      padding: 14px;
+      overflow-x: auto;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    ul { margin: 10px 0 0 18px; color: var(--muted); }
+    .footer { margin-top: 22px; font-size: 0.95rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <span class="badge">Backend Running</span>
+    <h1>Personal Online Bookkeeping System</h1>
+    <p>
+      The Spring Boot backend is up. This landing page replaces the default Whitelabel Error Page
+      so you can quickly verify the server is working when you open <code>http://localhost:8080/</code>.
+    </p>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Current Day 2 Scope</h2>
+        <ul>
+          <li>User registration</li>
+          <li>User login</li>
+          <li>JWT authentication</li>
+          <li>Current user info endpoint</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Useful Endpoints</h2>
+        <ul>
+          <li><code>POST /api/auth/register</code></li>
+          <li><code>POST /api/auth/login</code></li>
+          <li><code>GET /api/auth/me</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Run Commands</h2>
+        <pre>cd bookkeeping-backend
+./mvnw spring-boot:run</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Setup Reminder</h2>
+        <p>
+          Make sure MySQL is running and your environment variables are set before starting the app.
+        </p>
+        <pre>export DB_PASSWORD='your_mysql_password'
+export JWT_SECRET='YourSuperSecretKey...'</pre>
+      </section>
+    </div>
+
+    <div class="footer">
+      For the full usage guide, open <a href="/USAGE_GUIDE.md" target="_blank">USAGE_GUIDE.md</a> in the project root.
+    </div>
+  </main>
+</body>
+</html>
