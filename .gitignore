@@ -1,6 +1,5 @@
 # Maven build output
 bookkeeping-backend/target/
-bookkeeping-backend/.mvn/wrapper/maven-wrapper.jar
 
 # Node
 bookkeeping-frontend/node_modules/
@@ -21,8 +20,13 @@ out/
 *.env
 *.env.local
 *.env.production
+*.env.*.local
 application-prod.yml
 application-local.yml
+bookkeeping-backend/src/main/resources/application-local.yml
+bookkeeping-frontend/.env.local
+bookkeeping-frontend/.env.development.local
+bookkeeping-frontend/.env.production.local
 
 # Logs
 *.log
