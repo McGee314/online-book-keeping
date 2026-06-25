@@ -10,22 +10,23 @@ import lombok.NoArgsConstructor;
 public class Result<T> {
 
     private Integer code;
+    private Boolean success;
     private String message;
     private T data;
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(200, "success", data);
+        return new Result<>(200, true, "success", data);
     }
 
     public static <T> Result<T> success() {
-        return new Result<>(200, "success", null);
+        return new Result<>(200, true, "success", null);
     }
 
     public static <T> Result<T> error(Integer code, String message) {
-        return new Result<>(code, message, null);
+        return new Result<>(code, false, message, null);
     }
 
     public static <T> Result<T> error(String message) {
-        return new Result<>(500, message, null);
+        return new Result<>(500, false, message, null);
     }
 }
