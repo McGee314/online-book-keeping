@@ -11,15 +11,13 @@ A full-stack web application for personal income/expense tracking, built as a un
 | Database | MySQL 5.7 / 8.0 |
 | Build | Maven (backend), Vite (frontend) |
 
-## Features
+## Required Core Features
 
-- User registration and login with JWT authentication
-- Income and expense transaction management (CRUD + filters)
-- Custom categories per user
-- Monthly budget tracking with actual vs. budget comparison
-- Dashboard with summary cards and ECharts visualizations
-  - Monthly income/expense trend (bar/line chart)
-  - Expense breakdown by category (pie chart)
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | **User Authentication** | Registration, login, and secure logout with username/password. Username uniqueness verification, encrypted password storage (BCrypt), and route guards to block unauthorized access. |
+| 2 | **Bill Management** | Full CRUD for bills (income/expense records). Fixed income/expense categories, reverse chronological sorting, quick filtering by type (income vs. expense). |
+| 3 | **Data Statistics** | Real-time monthly total income, expenses, and net balance. Pie chart visualization of expense category distribution for quick consumption pattern identification. |
 
 ## Project Documents
 
@@ -60,18 +58,41 @@ npm run dev
 
 ## API Overview
 
+### Authentication
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/register` | Register new user |
 | POST | `/api/auth/login` | Login, returns JWT |
-| GET | `/api/categories` | List categories |
-| GET | `/api/transactions` | List transactions (paginated, filterable) |
+| POST | `/api/auth/logout` | Logout (clears server-side token if blacklist is implemented) |
+| GET | `/api/auth/me` | Get current user info |
+
+### Categories
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/categories` | List categories for current user |
+| POST | `/api/categories` | Create category |
+| PUT | `/api/categories/{id}` | Update category |
+| DELETE | `/api/categories/{id}` | Delete category |
+
+### Transactions (Bill Management)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/transactions` | List transactions (reverse chronological, filterable by type/category/date) |
 | POST | `/api/transactions` | Create transaction |
 | PUT | `/api/transactions/{id}` | Update transaction |
 | DELETE | `/api/transactions/{id}` | Delete transaction |
-| GET | `/api/stats/summary` | Income/expense/balance totals |
-| GET | `/api/stats/monthly` | Monthly breakdown for charts |
-| GET | `/api/stats/category` | Per-category totals for pie chart |
-| GET | `/api/budgets` | List budgets |
-| POST | `/api/budgets` | Set monthly budget |
-| GET | `/api/budgets/status` | Actual vs. budget comparison |
+
+### Data Statistics
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/stats/summary` | Current month: total income, total expense, net balance |
+| GET | `/api/stats/monthly` | Monthly income/expense breakdown (last 6 months, for trend chart) |
+| GET | `/api/stats/category` | Expense breakdown by category (for pie chart) |
+
+## Architecture Decision: Stateless JWT Authentication
+
+This project uses JWT (JSON Web Token) for authentication. Tokens are issued at login and must be included in the `Authorization: Bearer <token>` header for all protected requests. Logout is handled client-side by discarding the token from localStorage (with an optional server-side blacklist for additional security). A `JwtAuthInterceptor` acts as a route guard, checking every protected request for a valid token and extracting the user context via `UserContext` (ThreadLocal).

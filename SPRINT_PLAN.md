@@ -2,13 +2,18 @@
 
 **Stack:** Vue 3 + Element Plus + Axios + ECharts | Spring Boot 2.x + MyBatis-Plus | MySQL
 
+**Required Core Features (Must Complete):**
+1. **User Authentication** — registration, login, secure logout; username uniqueness verification; encrypted password storage; route guards to block unauthorized access.
+2. **Bill Management** — CRUD bills; fixed income/expense categories; reverse chronological sort; quick filtering by type.
+3. **Data Statistics** — real-time monthly total income/expenses/balance; pie chart to visualize expense category distribution for quick consumption pattern identification.
+
 ---
 
 ## Day 1 — Project Setup & Database Design
 **Goal:** Everything bootstrapped, DB running, schema committed.
 
 - [ ] Create Git repo, set up `.gitignore` for both Maven and Node
-- [ ] Design and finalize DB schema (Users, Categories, Transactions, Budgets)
+- [ ] Design and finalize DB schema (Users, Categories, Transactions)
 - [ ] Run DDL scripts in MySQL, verify tables in Navicat
 - [ ] Initialize Spring Boot project via Spring Initializr (see scaffolding guide)
 - [ ] Initialize Vue 3 frontend via Vite
@@ -19,15 +24,16 @@
 ---
 
 ## Day 2 — Backend: User Authentication
-**Goal:** Register + Login APIs working with JWT.
+**Goal:** Register + Login + Logout APIs working with JWT.
 
 - [ ] Implement `User` entity, Mapper, Service, Controller
 - [ ] Integrate `jjwt` for JWT token generation/validation
 - [ ] Implement `POST /api/auth/register` and `POST /api/auth/login`
-- [ ] Add `JwtFilter` to Spring Security filter chain (or a simple servlet filter)
+- [ ] Implement `POST /api/auth/logout` (client-side token discard; optionally server-side token blacklist)
+- [ ] Add `JwtAuthInterceptor` to enforce route guards on protected endpoints
 - [ ] Test endpoints with Postman/curl
 
-**Deliverable:** Auth APIs return JWT token on successful login.
+**Deliverable:** Auth APIs return JWT on login, block unauthorized access, support logout.
 
 ---
 
@@ -40,7 +46,7 @@
   - `PUT /api/categories/{id}` — update
   - `DELETE /api/categories/{id}` — delete
 - [ ] Implement `Transaction` entity, Mapper, Service, Controller
-  - `GET /api/transactions` — list with filters (date range, type, category)
+  - `GET /api/transactions` — list with filters (date range, type, category), ordered reverse chronological
   - `POST /api/transactions` — create
   - `PUT /api/transactions/{id}` — update
   - `DELETE /api/transactions/{id}` — delete
@@ -51,19 +57,18 @@
 
 ---
 
-## Day 4 — Backend: Statistics & Budget APIs
-**Goal:** Aggregate data endpoints that power dashboard charts.
+## Day 4 — Backend: Data Statistics API
+**Goal:** Aggregate data endpoints that power the dashboard statistics (real-time monthly totals and pie chart).
 
-- [ ] `GET /api/stats/summary` — total income, total expense, net balance for a period
-- [ ] `GET /api/stats/monthly` — monthly income/expense breakdown (for line/bar chart)
+- [ ] `GET /api/stats/summary` — total income, total expense, net balance for current month
+- [ ] `GET /api/stats/monthly` — monthly income/expense breakdown (for line/bar chart, last 6 months)
 - [ ] `GET /api/stats/category` — expense breakdown by category (for pie chart)
-- [ ] Implement `Budget` entity + APIs
-  - `GET /api/budgets` — list budgets
-  - `POST /api/budgets` — create budget for a category/month
-  - `GET /api/budgets/status` — actual vs. budget comparison
-- [ ] MyBatis-Plus custom SQL for aggregation queries
+- [ ] MyBatis custom SQL for aggregation queries (GROUP BY month, GROUP BY category)
+- [ ] Write integration tests to verify stats recalculate after transaction deletion
 
-**Deliverable:** Stats and budget endpoints return correct aggregated data.
+**Acceptance Criteria (from requirements):** Statistics must update after bill deletion; data consistency is critical.
+
+**Deliverable:** Stats endpoints return correct aggregated data that stays consistent with transactions.
 
 ---
 
@@ -76,8 +81,9 @@
 - [ ] Build `LoginPage.vue` and `RegisterPage.vue` using Element Plus forms
 - [ ] Implement navigation guard (`router.beforeEach`) to redirect unauthenticated users
 - [ ] Connect forms to `POST /api/auth/login` and `POST /api/auth/register`
+- [ ] Implement logout: clear token from localStorage and redirect to login
 
-**Deliverable:** Can register, log in, and be redirected to dashboard; 401 redirects to login.
+**Deliverable:** Can register, log in, and be redirected to dashboard; 401 redirects to login; logout works.
 
 ---
 
@@ -89,55 +95,55 @@
   - Element Plus Table with pagination
   - Filter bar: date range picker, type selector, category selector
   - Income/Expense row color coding
+  - Reverse chronological order by default
 - [ ] Build `TransactionFormDialog.vue` (Add/Edit dialog)
   - Form fields: amount, type (income/expense), category, date, note
-  - Form validation rules
+  - Form validation rules with clear prompts (acceptance criteria)
 - [ ] Wire up all CRUD operations to backend APIs
 
-**Deliverable:** User can add, view, edit, and delete transactions.
+**Deliverable:** User can add, view, edit, and delete transactions; sorting and filtering work.
 
 ---
 
-## Day 7 — Frontend: Categories & Budget UI
-**Goal:** Category management and budget tracking pages.
+## Day 7 — Frontend: Categories Management UI
+**Goal:** Category management page.
 
 - [ ] Build `CategoryPage.vue` — table with add/edit/delete
-- [ ] Build `BudgetPage.vue`
-  - Set monthly budget per category
-  - Progress bars showing actual vs. budget (Element Plus `el-progress`)
+- [ ] Display fixed income/expense categories with type indicators
 - [ ] Build `UserProfilePage.vue` — display username, change password form
+- [ ] Clean form validation and user experience details
 
-**Deliverable:** Category and budget pages fully functional.
+**Deliverable:** Category page fully functional with proper feedback.
 
 ---
 
-## Day 8 — Frontend: Dashboard & ECharts
-**Goal:** Visual dashboard with charts.
+## Day 8 — Frontend: Dashboard & ECharts (Data Statistics)
+**Goal:** Visual dashboard with charts matching the Required Core Features.
 
 - [ ] Build `DashboardPage.vue`
-  - Summary cards: Total Income, Total Expense, Net Balance (current month)
+  - Summary cards: Total Income, Total Expense, Net Balance (current month — real-time)
   - Line/Bar chart: monthly income vs. expense trend (last 6 months) — ECharts
-  - Pie chart: expense breakdown by category — ECharts
+  - Pie chart: expense breakdown by category — ECharts (required core feature)
   - Recent 5 transactions list
 - [ ] Create reusable `BarLineChart.vue` and `PieChart.vue` wrapper components
 - [ ] Connect all charts to `/api/stats/*` endpoints
 - [ ] Handle loading states and empty states gracefully
 
-**Deliverable:** Dashboard shows live charts from real data.
+**Deliverable:** Dashboard shows live charts from real data; statistics update in real-time.
 
 ---
 
 ## Day 9 — Integration Testing & Bug Fixing
-**Goal:** End-to-end flows work without errors.
+**Goal:** End-to-end flows work without errors. Focus on data consistency.
 
 - [ ] Full user journey test: Register → Login → Add categories → Add transactions → View dashboard
-- [ ] Test budget flow: Set budget → Add transactions → Check budget status page
+- [ ] Verify statistics update after bill deletion (acceptance criteria)
 - [ ] Fix CORS issues (verify Spring Boot CORS config)
 - [ ] Fix any date/timezone inconsistencies between frontend and backend
 - [ ] Handle edge cases: empty data states, form validation errors, network errors
 - [ ] Basic responsive layout check (tablet/desktop)
 
-**Deliverable:** All core user flows work end-to-end without crashes.
+**Deliverable:** All 3 core user flows work end-to-end without crashes; data stays consistent.
 
 ---
 
@@ -159,7 +165,8 @@
 
 | Risk | Mitigation |
 |------|-----------|
-| JWT auth takes too long | Use Spring Security's built-in form login as fallback |
+| JWT auth takes too long | Use a simple servlet filter / interceptor approach instead of full Spring Security |
 | ECharts integration issues | Use vue-echarts wrapper library |
 | MySQL connection issues | Have H2 in-memory DB as local fallback |
-| Running behind on Day 5+ | Skip Budget feature, focus on core transaction CRUD + dashboard |
+| Running behind on Day 5+ | Prioritize the 3 Required Core Features; defer enhancements |
+| Statistics data inconsistency | Write integration tests early (Day 4); verify after every transaction mutation |

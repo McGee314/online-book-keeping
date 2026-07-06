@@ -8,67 +8,74 @@
 bookkeeping-backend/
 ├── src/
 │   ├── main/
-│   │   ├── java/com/yourname/bookkeeping/
+│   │   ├── java/com/samudera/bookkeeping/
 │   │   │   ├── BookkeepingApplication.java    ← main class + CORS bean
 │   │   │   │
 │   │   │   ├── common/                        ← shared utilities
 │   │   │   │   ├── Result.java                ← unified API response wrapper
-│   │   │   │   ├── ResultCode.java            ← error code constants
 │   │   │   │   └── GlobalExceptionHandler.java← @RestControllerAdvice
 │   │   │   │
 │   │   │   ├── config/                        ← Spring config beans
 │   │   │   │   ├── MybatisPlusConfig.java     ← pagination plugin
-│   │   │   │   └── WebMvcConfig.java          ← JWT filter registration
+│   │   │   │   ├── PasswordConfig.java        ← BCryptPasswordEncoder bean
+│   │   │   │   └── WebMvcConfig.java          ← JWT interceptor registration + CORS
+│   │   │   │
+│   │   │   ├── context/                       ← thread-local context
+│   │   │   │   └── UserContext.java           ← stores userId from JWT per request
 │   │   │   │
 │   │   │   ├── security/                      ← auth concerns only
-│   │   │   │   ├── JwtUtil.java               ← generate/parse JWT
-│   │   │   │   └── JwtFilter.java             ← OncePerRequestFilter
+│   │   │   │   └── JwtUtil.java               ← generate/parse JWT
 │   │   │   │
-│   │   │   ├── entity/                        ← @TableName JPA-like POJOs
+│   │   │   ├── interceptor/                   ← request interceptors
+│   │   │   │   └── JwtAuthInterceptor.java    ← route guard: validates JWT, sets UserContext
+│   │   │   │
+│   │   │   ├── properties/                    ← typed config properties
+│   │   │   │   └── JwtProperties.java         ← JWT secret + expiration from application.yml
+│   │   │   │
+│   │   │   ├── entity/                        ← @TableName POJOs (maps to DB tables)
 │   │   │   │   ├── User.java
 │   │   │   │   ├── Category.java
-│   │   │   │   ├── Transaction.java
-│   │   │   │   └── Budget.java
+│   │   │   │   └── Transaction.java
 │   │   │   │
 │   │   │   ├── dto/                           ← request/response shapes
 │   │   │   │   ├── LoginRequest.java
 │   │   │   │   ├── RegisterRequest.java
+│   │   │   │   ├── CategoryRequest.java
 │   │   │   │   ├── TransactionRequest.java
-│   │   │   │   └── StatsSummaryVO.java        ← VO = view object (response)
+│   │   │   │   └── TransactionQueryRequest.java
 │   │   │   │
-│   │   │   ├── mapper/                        ← MyBatis-Plus mappers
+│   │   │   ├── vo/                            ← view objects (safe response shapes)
+│   │   │   │   ├── AuthResponse.java          ← token + user info
+│   │   │   │   └── UserInfoVO.java
+│   │   │   │
+│   │   │   ├── mapper/                        ← MyBatis-Plus mappers (interface only)
 │   │   │   │   ├── UserMapper.java
 │   │   │   │   ├── CategoryMapper.java
-│   │   │   │   ├── TransactionMapper.java
-│   │   │   │   └── BudgetMapper.java
+│   │   │   │   └── TransactionMapper.java
 │   │   │   │
 │   │   │   ├── service/                       ← business logic interfaces
 │   │   │   │   ├── UserService.java
 │   │   │   │   ├── CategoryService.java
 │   │   │   │   ├── TransactionService.java
-│   │   │   │   ├── BudgetService.java
 │   │   │   │   └── impl/                      ← implementations
 │   │   │   │       ├── UserServiceImpl.java
 │   │   │   │       ├── CategoryServiceImpl.java
-│   │   │   │       ├── TransactionServiceImpl.java
-│   │   │   │       └── BudgetServiceImpl.java
+│   │   │   │       └── TransactionServiceImpl.java
 │   │   │   │
 │   │   │   └── controller/                    ← REST endpoints
-│   │   │       ├── AuthController.java        ← /api/auth/*
+│   │   │       ├── AuthController.java        ← /api/auth/* (register, login, logout, me)
 │   │   │       ├── CategoryController.java    ← /api/categories/*
-│   │   │       ├── TransactionController.java ← /api/transactions/*
-│   │   │       ├── BudgetController.java      ← /api/budgets/*
-│   │   │       └── StatsController.java       ← /api/stats/*
+│   │   │       ├── TransactionController.java ← /api/transactions/* (bill management)
+│   │   │       └── StatsController.java       ← /api/stats/* (data statistics)
 │   │   │
 │   │   └── resources/
 │   │       ├── application.yml
-│   │       ├── application-dev.yml            ← dev overrides
-│   │       └── mapper/                        ← XML files for custom SQL
+│   │       └── mapper/                        ← XML files for custom SQL (stats aggregations)
 │   │           └── TransactionMapper.xml
 │   │
-│   └── test/java/com/yourname/bookkeeping/
-│       └── service/
-│           └── TransactionServiceTest.java
+│   └── test/java/com/samudera/bookkeeping/
+│       ├── BookkeepingBackendApplicationTests.java
+│       └── CategoryTransactionIntegrationTest.java
 │
 └── pom.xml
 ```
@@ -77,12 +84,12 @@ bookkeeping-backend/
 
 1. **Never put business logic in controllers.** Controllers should only: validate input, call a service, and return `Result<T>`. Logic (queries, calculations, permission checks) lives in the Service layer.
 
-2. **Use DTOs/VOs to separate API contracts from DB entities.** Never return a raw `User` entity — it would expose the hashed password. Create a `UserVO` with only safe fields.
+2. **Use DTOs/VOs to separate API contracts from DB entities.** Never return a raw `User` entity — it would expose the hashed password. Create a `UserInfoVO` with only safe fields.
 
-3. **Store the current user in a thread-local context.** In `JwtFilter`, after parsing the token, store the userId in a `UserContext` class backed by `ThreadLocal<Long>`. Services then call `UserContext.getUserId()` instead of accepting userId as a parameter. This prevents users from accessing each other's data.
+3. **Store the current user in a thread-local context.** In `JwtAuthInterceptor`, after parsing the token, store the userId in a `UserContext` class backed by `ThreadLocal<Long>`. Services then call `UserContext.getUserId()` instead of accepting userId as a parameter. This prevents users from accessing each other's data.
 
 ```java
-// In JwtFilter after token validation:
+// In JwtAuthInterceptor after token validation:
 UserContext.setUserId(userId);
 
 // In any service:
@@ -106,18 +113,17 @@ bookkeeping-frontend/
 │   ├── App.vue                    ← root component
 │   │
 │   ├── router/
-│   │   └── index.js               ← routes + navigation guard
+│   │   └── index.js               ← routes + navigation guard (route guard)
 │   │
 │   ├── stores/                    ← Pinia stores
 │   │   ├── user.js                ← auth state (token, userInfo)
 │   │   └── app.js                 ← global UI state (sidebar collapsed, etc.)
 │   │
 │   ├── api/                       ← one file per backend resource
-│   │   ├── auth.js                ← login(), register()
+│   │   ├── auth.js                ← login(), register(), logout(), getMe()
 │   │   ├── transaction.js         ← getList(), create(), update(), remove()
-│   │   ├── category.js
-│   │   ├── budget.js
-│   │   └── stats.js
+│   │   ├── category.js            ← getList(), create(), update(), remove()
+│   │   └── stats.js               ← getSummary(), getMonthly(), getCategoryBreakdown()
 │   │
 │   ├── utils/
 │   │   ├── request.js             ← Axios instance (see scaffolding guide)
@@ -131,20 +137,18 @@ bookkeeping-frontend/
 │   │   │   ├── LoginPage.vue
 │   │   │   └── RegisterPage.vue
 │   │   ├── dashboard/
-│   │   │   └── DashboardPage.vue
+│   │   │   └── DashboardPage.vue   ← summary cards + trend chart + pie chart
 │   │   ├── transaction/
 │   │   │   └── TransactionListPage.vue
 │   │   ├── category/
 │   │   │   └── CategoryPage.vue
-│   │   ├── budget/
-│   │   │   └── BudgetPage.vue
 │   │   └── profile/
 │   │       └── UserProfilePage.vue
 │   │
 │   └── components/                ← reusable, dumb components
 │       ├── charts/
-│       │   ├── BarLineChart.vue   ← wraps ECharts bar/line
-│       │   └── PieChart.vue       ← wraps ECharts pie
+│       │   ├── BarLineChart.vue   ← wraps ECharts bar/line (monthly trend)
+│       │   └── PieChart.vue       ← wraps ECharts pie (expense category distribution)
 │       ├── TransactionFormDialog.vue
 │       └── SummaryCard.vue
 │
@@ -203,8 +207,8 @@ bookkeeping/                   ← monorepo root
 ├── bookkeeping-backend/       ← Spring Boot project
 ├── bookkeeping-frontend/      ← Vue 3 project
 ├── db/
-│   ├── schema.sql
-│   └── seed.sql
+│   ├── schema.sql             ← users, categories, transactions tables
+│   └── seed.sql               ← default categories (income + expense)
 ├── SPRINT_PLAN.md
 ├── SCAFFOLDING_GUIDE.md
 ├── PROJECT_STRUCTURE.md
@@ -235,4 +239,3 @@ application-prod.yml
 # OS
 .DS_Store
 Thumbs.db
-```
