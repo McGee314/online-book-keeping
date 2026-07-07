@@ -1,40 +1,143 @@
-# Maven build output
-bookkeeping-backend/target/
+# ============================================================
+# Personal Online Bookkeeping System — Git Ignore Rules
+# ============================================================
 
-# Node
+# -----------------------------------------------
+# Maven / Java
+# -----------------------------------------------
+bookkeeping-backend/target/
+bookkeeping-backend/.mvn/
+*.class
+*.jar
+*.war
+*.ear
+
+# -----------------------------------------------
+# Node / Frontend
+# -----------------------------------------------
 bookkeeping-frontend/node_modules/
 bookkeeping-frontend/dist/
+bookkeeping-frontend/dist-ssr/
 bookkeeping-frontend/.vite/
 
-# IDE — IntelliJ IDEA
-.idea/
-*.iml
-*.iws
-*.ipr
-out/
+# -----------------------------------------------
+# Docker — local overrides (never commit)
+# -----------------------------------------------
+docker-compose.override.yml
+.dockerignore
 
-# IDE — VS Code (keep extensions/tasks, ignore personal settings)
-.vscode/settings.json
+# Docker volume data (should never end up in repo)
+docker/
+mysql_data/
 
-# Environment / secrets — never commit these
-*.env
+# -----------------------------------------------
+# Environment / Secrets
+# -----------------------------------------------
+.env
+.env.*
+!.env.example
 *.env.local
-*.env.production
 *.env.*.local
 application-prod.yml
 application-local.yml
+bookkeeping-backend/src/main/resources/application-prod.yml
 bookkeeping-backend/src/main/resources/application-local.yml
 bookkeeping-frontend/.env.local
 bookkeeping-frontend/.env.development.local
 bookkeeping-frontend/.env.production.local
 
+# -----------------------------------------------
+# IDE — IntelliJ IDEA
+# -----------------------------------------------
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# -----------------------------------------------
+# IDE — VS Code
+# (keep extensions.json for team consistency)
+# -----------------------------------------------
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+*.code-workspace
+
+# -----------------------------------------------
+# IDE — Eclipse / STS / NetBeans
+# -----------------------------------------------
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# -----------------------------------------------
+# Editor Swap / Backup Files
+# -----------------------------------------------
+*.swp
+*.swo
+*.swn
+*~
+*.bak
+*.orig
+\#*#
+.\#*
+
+# -----------------------------------------------
 # Logs
+# -----------------------------------------------
 *.log
 logs/
+bookkeeping-backend/logs/
 
-# OS
+# -----------------------------------------------
+# Temp / Cache
+# -----------------------------------------------
+tmp/
+temp/
+.cache/
+.eslintcache
+.parcel-cache/
+.npm/
+*.tmp
+
+# -----------------------------------------------
+# Test Coverage
+# -----------------------------------------------
+coverage/
+bookkeeping-backend/coverage/
+*.lcov
+*.nyc_output
+
+# -----------------------------------------------
+# OS Generated Files
+# -----------------------------------------------
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Desktop.ini
+ehthumbs.db
 Thumbs.db
+$RECYCLE.BIN/
 
-# Compiled class files
-*.class
+# -----------------------------------------------
+# Compiled Python / Script Artifacts
+# -----------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
