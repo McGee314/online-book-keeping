@@ -17,7 +17,7 @@ A full-stack web application for personal income/expense tracking, built as a un
 |---|---------|-------------|
 | 1 | **User Authentication** | Registration, login, and secure logout with username/password. Username uniqueness verification, encrypted password storage (BCrypt), and route guards to block unauthorized access. |
 | 2 | **Bill Management** | Full CRUD for bills (income/expense records). Fixed income/expense categories, reverse chronological sorting, quick filtering by type (income vs. expense). |
-| 3 | **Data Statistics** | Real-time monthly total income, expenses, and net balance. Pie chart visualization of expense category distribution for quick consumption pattern identification. |
+| 3 | **Category Management** | Full CRUD for income and expense categories, including user-scoped custom categories and system default categories. |
 
 ---
 
@@ -255,27 +255,21 @@ graph TB
             DASHBOARD["/dashboard<br/>DashboardPage.vue"]
             T_LIST["/transactions<br/>TransactionListPage.vue"]
             CAT_PAGE["/categories<br/>CategoryPage.vue"]
-            BUDGET_PAGE["/budgets<br/>BudgetPage.vue"]
             PROFILE["/profile<br/>UserProfilePage.vue"]
         end
 
         LAYOUT --> DASHBOARD
         LAYOUT --> T_LIST
         LAYOUT --> CAT_PAGE
-        LAYOUT --> BUDGET_PAGE
         LAYOUT --> PROFILE
     end
 
     subgraph COMPONENTS["Reusable Components"]
         TXN_DIALOG["TransactionFormDialog.vue"]
-        BARLINE["BarLineChart.vue"]
-        PIE["PieChart.vue"]
         SUMMARY["SummaryCard.vue"]
     end
 
     T_LIST -.-> TXN_DIALOG
-    DASHBOARD -.-> BARLINE
-    DASHBOARD -.-> PIE
     DASHBOARD -.-> SUMMARY
 
     subgraph STORES["Pinia Stores"]
@@ -287,8 +281,6 @@ graph TB
         AUTH_API["auth.js"]
         TXN_API["transaction.js"]
         CAT_API["category.js"]
-        BUDGET_API["budget.js"]
-        STATS_API["stats.js"]
     end
 
     subgraph CORE["Core Utilities"]
@@ -326,15 +318,12 @@ graph LR
         AUTH_CTRL["AuthController<br/>/api/auth/*"]
         CAT_CTRL["CategoryController<br/>/api/categories/*"]
         TXN_CTRL["TransactionController<br/>/api/transactions/*"]
-        STATS_CTRL["StatsController<br/>/api/stats/*"]
-        BUD_CTRL["BudgetController<br/>/api/budgets/*"]
     end
 
     subgraph SVC_LAYER["Service Layer (Business Logic)"]
         USER_SVC["UserServiceImpl"]
         CAT_SVC["CategoryServiceImpl"]
         TXN_SVC["TransactionServiceImpl"]
-        BUD_SVC["BudgetServiceImpl"]
     end
 
     subgraph INFRA["Infrastructure / Cross-Cutting"]
@@ -425,9 +414,5 @@ npm run dev
 | POST | `/api/transactions` | Create transaction |
 | PUT | `/api/transactions/{id}` | Update transaction |
 | DELETE | `/api/transactions/{id}` | Delete transaction |
-| GET | `/api/stats/summary` | Income/expense/balance totals |
-| GET | `/api/stats/monthly` | Monthly breakdown for charts |
-| GET | `/api/stats/category` | Per-category totals for pie chart |
-| GET | `/api/budgets` | List budgets |
-| POST | `/api/budgets` | Set monthly budget |
-| GET | `/api/budgets/status` | Actual vs. budget comparison |
+
+The repository also contains the `budgets` table in `db/schema.sql` for future expansion, but there is no corresponding REST controller in the current backend.
