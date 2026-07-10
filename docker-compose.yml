@@ -1,0 +1,91 @@
+# ============================================================
+# Bookkeeping System — Docker Compose Orchestration
+# Services: db (MySQL 8.0), backend (Spring Boot), frontend (Nginx)
+# ============================================================
+
+version: "3.8"
+
+services:
+
+  # ==========================================================
+  # Database — MySQL 8.0
+  # ==========================================================
+  db:
+    image: mysql:8.0
+    container_name: bookkeeping-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: secretpassword
+      MYSQL_DATABASE: bookkeeping_db
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      # Persistent data storage
+      - mysql_data:/var/lib/mysql
+      # Auto-run schema + seed on first start
+      - ./db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecretpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - bookkeeping-net
+
+  # ==========================================================
+  # Backend — Spring Boot (port 8080)
+  # ==========================================================
+  backend:
+    build:
+      context: ./bookkeeping-backend
+      dockerfile: Dockerfile
+    container_name: bookkeeping-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Spring Datasource — connects to db service
+      DB_URL: jdbc:mysql://db:3306/bookkeeping_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: secretpassword
+      # JWT configuration
+      JWT_SECRET: YourSuperSecretKeyThatIsAtLeast256BitsLong!BookkeepingApp2026
+      JWT_EXPIRATION: "86400000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bookkeeping-net
+
+  # ==========================================================
+  # Frontend — Nginx serving Vue 3 SPA (port 3000 → 80)
+  # ==========================================================
+  frontend:
+    build:
+      context: ./bookkeeping-frontend
+      dockerfile: Dockerfile
+    container_name: bookkeeping-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - bookkeeping-net
+
+# ============================================================
+# Volumes — persistent data
+# ============================================================
+volumes:
+  mysql_data:
+    driver: local
+
+# ============================================================
+# Networks
+# ============================================================
+networks:
+  bookkeeping-net:
+    driver: bridge

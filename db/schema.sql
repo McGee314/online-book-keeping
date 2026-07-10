@@ -3,11 +3,11 @@
 -- MySQL 5.7 / 8.0
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS bookkeeping
+CREATE DATABASE IF NOT EXISTS bookkeeping_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE bookkeeping;
+USE bookkeeping_db;
 
 -- ============================================================
 -- Table: users
