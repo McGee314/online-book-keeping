@@ -3,7 +3,7 @@
 -- Run this AFTER schema.sql
 -- ============================================================
 
-USE bookkeeping;
+USE bookkeeping_db;
 
 -- Income categories
 INSERT INTO `categories` (`user_id`, `name`, `type`, `icon`, `color`, `sort_order`) VALUES

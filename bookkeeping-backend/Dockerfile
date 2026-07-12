@@ -18,11 +18,11 @@ COPY src ./src
 RUN mvn package -DskipTests -B -q
 
 # ---------- Stage 2: Run ----------
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # Create non-root user for security
-RUN addgroup -g 1000 appgroup && \
-    adduser -u 1000 -G appgroup -D appuser
+RUN groupadd -f -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -m appuser
 
 WORKDIR /app
 

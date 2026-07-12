@@ -28,7 +28,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     public List<Category> listCurrentUserCategories() {
         Long userId = requireCurrentUserId();
         return lambdaQuery()
-                .eq(Category::getUserId, userId)
+                .and(wrapper -> wrapper
+                        .eq(Category::getUserId, userId)
+                        .or()
+                        .isNull(Category::getUserId))
                 .orderByAsc(Category::getType)
                 .orderByAsc(Category::getSortOrder)
                 .orderByAsc(Category::getId)
@@ -89,7 +92,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         Long userId = requireCurrentUserId();
         Category category = getOne(new LambdaQueryWrapper<Category>()
                 .eq(Category::getId, id)
-                .eq(Category::getUserId, userId)
+                .and(wrapper -> wrapper
+                        .eq(Category::getUserId, userId)
+                        .or()
+                        .isNull(Category::getUserId))
                 .last("LIMIT 1"));
         if (category == null) {
             throw new BusinessException(404, "Category not found");

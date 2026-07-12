@@ -5,9 +5,9 @@ spring:
   application:
     name: bookkeeping-backend
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/bookkeeping?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/bookkeeping_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:change_me}
+    password: ${DB_PASSWORD:secretpassword}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
