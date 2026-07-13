@@ -30,6 +30,9 @@ public class TransactionRequest {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate transactionDate;
 
+    @Size(max = 10, message = "length must be less than or equal to 10")
+    private String currencyCode;
+
     @Size(max = 500, message = "length must be less than or equal to 500")
     private String note;
 }

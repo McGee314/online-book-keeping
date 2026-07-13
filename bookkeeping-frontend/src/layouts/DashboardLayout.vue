@@ -20,6 +20,10 @@ provide('onAddTransaction', (fn) => {
   addTransactionCallback.value = fn
 })
 
+// Multi-currency: display currency selector
+const displayCurrency = ref('IDR')
+provide('displayCurrency', displayCurrency)
+
 function handleAddTransaction() {
   addTransactionCallback.value?.()
 }
@@ -96,6 +100,14 @@ function handleLogout() {
           <el-button type="primary" size="small" @click="handleAddTransaction" plain>
             ＋ Add Transaction
           </el-button>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-text-secondary whitespace-nowrap">Display As:</span>
+            <el-select v-model="displayCurrency" size="small" class="w-20" popper-class="currency-select-popper">
+              <el-option label="IDR" value="IDR" />
+              <el-option label="CNY" value="CNY" />
+              <el-option label="USD" value="USD" />
+            </el-select>
+          </div>
           <span class="text-sm text-text-regular">{{ userInfo.nickname || userInfo.username }}</span>
           <el-button type="danger" size="small" @click="handleLogout" plain>Logout</el-button>
         </div>

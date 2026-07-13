@@ -3,28 +3,26 @@
 # ============================================================
 
 # -----------------------------------------------
-# Maven / Java
+# Maven / Java — handled by bookkeeping-backend/.gitignore
+# (keep only root-level rules here)
 # -----------------------------------------------
-bookkeeping-backend/target/
-bookkeeping-backend/.mvn/
 *.class
 *.jar
 *.war
 *.ear
 
+# Maven wrapper JAR (keep .mvn/wrapper/maven-wrapper.properties!)
+bookkeeping-backend/.mvn/wrapper/maven-wrapper.jar
+
 # -----------------------------------------------
-# Node / Frontend
+# Node / Frontend — handled by bookkeeping-frontend/.gitignore
+# (nothing root-specific needed)
 # -----------------------------------------------
-bookkeeping-frontend/node_modules/
-bookkeeping-frontend/dist/
-bookkeeping-frontend/dist-ssr/
-bookkeeping-frontend/.vite/
 
 # -----------------------------------------------
 # Docker — local overrides (never commit)
 # -----------------------------------------------
 docker-compose.override.yml
-.dockerignore
 
 # Docker volume data (should never end up in repo)
 docker/
@@ -38,13 +36,10 @@ mysql_data/
 !.env.example
 *.env.local
 *.env.*.local
+
+# Spring Boot env-specific configs
 application-prod.yml
 application-local.yml
-bookkeeping-backend/src/main/resources/application-prod.yml
-bookkeeping-backend/src/main/resources/application-local.yml
-bookkeeping-frontend/.env.local
-bookkeeping-frontend/.env.development.local
-bookkeeping-frontend/.env.production.local
 
 # -----------------------------------------------
 # IDE — IntelliJ IDEA
@@ -78,6 +73,8 @@ out/
 /nbbuild/
 /nbdist/
 /.nb-gradle/
+
+# Maven build output at root level
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -99,7 +96,6 @@ build/
 # -----------------------------------------------
 *.log
 logs/
-bookkeeping-backend/logs/
 
 # -----------------------------------------------
 # Temp / Cache
@@ -116,7 +112,6 @@ temp/
 # Test Coverage
 # -----------------------------------------------
 coverage/
-bookkeeping-backend/coverage/
 *.lcov
 *.nyc_output
 

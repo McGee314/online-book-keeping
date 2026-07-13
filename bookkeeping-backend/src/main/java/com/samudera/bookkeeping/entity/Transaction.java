@@ -25,6 +25,10 @@ public class Transaction {
 
     private BigDecimal amount;
 
+    private String currencyCode;
+
+    private BigDecimal baseAmount;
+
     private LocalDate transactionDate;
 
     private String note;

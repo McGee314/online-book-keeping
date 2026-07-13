@@ -10,19 +10,23 @@ import com.samudera.bookkeeping.entity.Transaction;
 import com.samudera.bookkeeping.exception.BusinessException;
 import com.samudera.bookkeeping.mapper.TransactionMapper;
 import com.samudera.bookkeeping.service.CategoryService;
+import com.samudera.bookkeeping.service.CurrencyService;
 import com.samudera.bookkeeping.service.TransactionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 public class TransactionServiceImpl extends ServiceImpl<TransactionMapper, Transaction> implements TransactionService {
 
     private final CategoryService categoryService;
+    private final CurrencyService currencyService;
 
-    public TransactionServiceImpl(CategoryService categoryService) {
+    public TransactionServiceImpl(CategoryService categoryService, CurrencyService currencyService) {
         this.categoryService = categoryService;
+        this.currencyService = currencyService;
     }
 
     @Override
@@ -63,6 +67,14 @@ public class TransactionServiceImpl extends ServiceImpl<TransactionMapper, Trans
         transaction.setCategoryId(request.getCategoryId());
         transaction.setType(request.getType());
         transaction.setAmount(request.getAmount());
+
+        // Currency handling
+        String currencyCode = request.getCurrencyCode() != null
+                ? request.getCurrencyCode().toUpperCase() : "IDR";
+        transaction.setCurrencyCode(currencyCode);
+        BigDecimal baseAmount = currencyService.convertToBaseCurrency(request.getAmount(), currencyCode);
+        transaction.setBaseAmount(baseAmount);
+
         transaction.setTransactionDate(request.getTransactionDate());
         transaction.setNote(request.getNote());
         transaction.setDeleted(0);
@@ -80,6 +92,13 @@ public class TransactionServiceImpl extends ServiceImpl<TransactionMapper, Trans
         transaction.setCategoryId(request.getCategoryId());
         transaction.setType(request.getType());
         transaction.setAmount(request.getAmount());
+
+        String currencyCode = request.getCurrencyCode() != null
+                ? request.getCurrencyCode().toUpperCase() : "IDR";
+        transaction.setCurrencyCode(currencyCode);
+        BigDecimal baseAmount = currencyService.convertToBaseCurrency(request.getAmount(), currencyCode);
+        transaction.setBaseAmount(baseAmount);
+
         transaction.setTransactionDate(request.getTransactionDate());
         transaction.setNote(request.getNote());
         updateById(transaction);
