@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.samudera.bookkeeping.context.UserContext;
 import com.samudera.bookkeeping.dto.LoginRequest;
+import com.samudera.bookkeeping.dto.PasswordUpdateRequest;
+import com.samudera.bookkeeping.dto.ProfileUpdateRequest;
 import com.samudera.bookkeeping.dto.RegisterRequest;
 import com.samudera.bookkeeping.entity.User;
 import com.samudera.bookkeeping.exception.BusinessException;
@@ -77,16 +79,77 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserInfoVO getCurrentUserInfo() {
+        User user = requireCurrentUser();
+        return toUserInfo(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserInfoVO updateProfile(ProfileUpdateRequest request) {
+        User user = requireCurrentUser();
+
+        if (StringUtils.hasText(request.getNickname())) {
+            user.setNickname(request.getNickname().trim());
+        }
+
+        if (StringUtils.hasText(request.getEmail())) {
+            // Check email uniqueness (excluding current user)
+            User emailUser = lambdaQuery()
+                    .eq(User::getEmail, request.getEmail().trim())
+                    .ne(User::getId, user.getId())
+                    .one();
+            if (emailUser != null) {
+                throw new BusinessException(409, "Email already in use by another account");
+            }
+            user.setEmail(request.getEmail().trim());
+        }
+
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar().trim());
+        }
+
+        updateById(user);
+        return toUserInfo(getById(user.getId()));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAvatar(String avatarUrl) {
+        User user = requireCurrentUser();
+        user.setAvatar(avatarUrl);
+        updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePassword(PasswordUpdateRequest request) {
+        User user = requireCurrentUser();
+
+        // Verify old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BusinessException(400, "Current password is incorrect");
+        }
+
+        // Confirm new passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException(400, "New password and confirm password do not match");
+        }
+
+        // Hash and save the new password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        updateById(user);
+    }
+
+    private User requireCurrentUser() {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             throw new BusinessException(401, "Unauthorized");
         }
-
         User user = getById(userId);
         if (user == null) {
             throw new BusinessException(404, "User not found");
         }
-        return toUserInfo(user);
+        return user;
     }
 
     private User getByUsername(String username) {

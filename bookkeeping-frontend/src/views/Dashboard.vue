@@ -6,6 +6,7 @@ import { getTransactions, createTransaction } from '../api/transaction'
 import { getCategories } from '../api/category'
 import { getRates } from '../api/currency'
 import { getByCategory, getDailyTrend, getStats } from '../api/report'
+import { getCurrentBudget, setBudget } from '../api/budget'
 
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -22,7 +23,7 @@ const displayCurrency = inject('displayCurrency', ref('CNY'))
 
 /* ───────── state ───────── */
 const loading = ref(true)
-const stats = ref({ income: 0, expense: 0, balance: 0, transactionCount: 0, categoryCount: 0 })
+const stats = ref({ income: 0, expense: 0, balance: 0, transactionCount: 0, categoryCount: 0, budget: null, budgetPercent: null })
 const recentTransactions = ref([])
 const categories = ref([])
 const rawRates = ref(null)
@@ -178,6 +179,8 @@ async function fetchStats() {
         income: inc, expense: exp, balance: inc - exp,
         transactionCount: data.transactionCount || 0,
         categoryCount: data.categoryCount || categories.value.length,
+        budget: data.budget ? Number(data.budget) : null,
+        budgetPercent: data.budgetPercent ? Number(data.budgetPercent) : null,
       }
     }
   } catch { /* keep defaults */ }
@@ -240,6 +243,53 @@ function greeting() {
   if (h < 12) return 'Good Morning'
   if (h < 17) return 'Good Afternoon'
   return 'Good Evening'
+}
+
+/* ───────── budget ───────── */
+const budgetDialogVisible = ref(false)
+const budgetFormRef = ref(null)
+const budgetForm = ref({ amount: null })
+const budgetSubmitting = ref(false)
+const budgetError = ref('')
+
+const budgetRules = {
+  amount: [
+    { required: true, message: 'Please enter a budget amount', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: 'Amount must be greater than 0', trigger: 'blur' },
+  ],
+}
+
+const budgetPercent = computed(() => {
+  return stats.value.budgetPercent ? Number(stats.value.budgetPercent) : 0
+})
+
+const budgetAlert = computed(() => {
+  const pct = budgetPercent.value
+  if (pct >= 100) return { level: 'danger', message: 'Budget exceeded!' }
+  if (pct >= 90) return { level: 'warning', message: 'Near budget limit!' }
+  return null
+})
+
+function openBudgetDialog() {
+  budgetForm.value.amount = stats.value.budget ? Number(stats.value.budget) : null
+  budgetDialogVisible.value = true
+}
+
+async function handleBudgetSubmit() {
+  const valid = await budgetFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  budgetSubmitting.value = true
+  budgetError.value = ''
+  try {
+    await setBudget({ amount: Number(budgetForm.value.amount) })
+    ElMessage.success('Budget saved!')
+    budgetDialogVisible.value = false
+    fetchStats()
+  } catch (err) {
+    budgetError.value = err?.response?.data?.message || 'Failed to save budget'
+  } finally {
+    budgetSubmitting.value = false
+  }
 }
 
 /* ───────── 7-day trend ───────── */
@@ -416,6 +466,14 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Budget Alert Banner -->
+    <div v-if="budgetAlert" class="rounded-xl px-4 py-3 flex items-center gap-3 text-sm font-semibold" :class="budgetAlert.level === 'danger' ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-amber-100 text-amber-700 border border-amber-200'">
+      <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <span>{{ budgetAlert.message }} ({{ budgetPercent }}% of monthly budget used)</span>
+    </div>
+
     <div v-loading="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-2xl p-5 shadow-card border border-border-light hover:shadow-card-hover transition-shadow duration-200">
         <div class="flex items-center gap-3 mb-3">
@@ -448,6 +506,36 @@ onMounted(() => {
         </div>
         <p class="text-xl sm:text-2xl font-extrabold text-text-primary">{{ stats.transactionCount }}</p>
         <p class="text-xs text-text-muted mt-1">{{ stats.categoryCount }} categories used</p>
+      </div>
+    </div>
+
+    <!-- Monthly Budget Progress -->
+    <div class="bg-white rounded-2xl shadow-card border border-border-light p-5">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h3 class="font-bold text-text-primary text-base">Monthly Budget</h3>
+        <el-button size="small" @click="openBudgetDialog" class="!rounded-lg">
+          {{ stats.budget ? 'Edit Budget' : 'Set Budget' }}
+        </el-button>
+      </div>
+      <div v-if="stats.budget" class="space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-text-muted">Spent</span>
+          <span class="font-semibold text-text-primary">{{ fmtConverted(stats.expense) }} / {{ fmtConverted(stats.budget) }}</span>
+        </div>
+        <el-progress
+          :percentage="budgetPercent > 100 ? 100 : budgetPercent"
+          :color="budgetPercent >= 100 ? '#dc2626' : budgetPercent >= 90 ? '#f59e0b' : '#16a34a'"
+          :stroke-width="12"
+          :show-text="false"
+        />
+        <div class="flex justify-between text-xs text-text-muted">
+          <span>{{ budgetPercent }}% used</span>
+          <span>{{ budgetPercent >= 100 ? 'Over budget' : budgetPercent >= 90 ? 'Almost there' : 'On track' }}</span>
+        </div>
+      </div>
+      <div v-else class="text-center py-4 text-text-muted text-sm">
+        <p>No budget set for this month.</p>
+        <el-button type="primary" size="small" @click="openBudgetDialog" class="!rounded-lg mt-2">Set Monthly Budget</el-button>
       </div>
     </div>
 
@@ -531,6 +619,24 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Budget Dialog -->
+    <el-dialog v-model="budgetDialogVisible" title="Set Monthly Budget" width="450px" :close-on-click-modal="false" destroy-on-close>
+      <el-form ref="budgetFormRef" :model="budgetForm" :rules="budgetRules" label-position="top" @submit.prevent="handleBudgetSubmit">
+        <el-form-item label="Budget Amount" prop="amount">
+          <el-input v-model.number="budgetForm.amount" placeholder="0.00" type="number" min="0.01" step="0.01" size="large">
+            <template #prefix><span class="text-text-muted">¥</span></template>
+          </el-input>
+        </el-form-item>
+        <p v-if="budgetError" class="text-rose-500 text-sm mt-1">{{ budgetError }}</p>
+      </el-form>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <el-button @click="budgetDialogVisible = false" size="large" class="!rounded-xl">Cancel</el-button>
+          <el-button type="primary" :loading="budgetSubmitting" @click="handleBudgetSubmit" size="large" class="!rounded-xl">Save Budget</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="dialogVisible" title="New Transaction" width="500px" :close-on-click-modal="false" destroy-on-close @closed="resetForm">
       <el-form ref="formRef" :model="form" :rules="formRules" label-position="top" @submit.prevent="handleSubmit">

@@ -1,0 +1,230 @@
+Create a professional presentation for a university course called "Practice of Software Development" about a **Personal Online Bookkeeping System** built as a full-stack web application. 
+
+The presentation should have 12–15 slides with the following structure:
+
+---
+
+**Slide 1: Title Slide**
+- Title: "Personal Online Bookkeeping System (isCash)"
+- Subtitle: "Practice of Software Development — Final Project"
+- A clean, modern look with a finance-themed icon
+
+---
+
+**Slide 2: Project Overview**
+- A full-stack personal finance tracking web application
+- Allows users to record income/expenses, categorize transactions, view statistics with charts, set budgets, and manage their profile
+- Fully Dockerized for easy deployment (3 containers: MySQL, Spring Boot backend, Nginx + Vue frontend)
+- Source code hosted on GitHub: github.com/McGee314/online-book-keeping
+
+---
+
+**Slide 3: Tech Stack**
+Present as a two-column visual table:
+
+| Frontend | Backend |
+|----------|---------|
+| Vue 3 (Composition API + script setup) | Spring Boot 2.7 |
+| Element Plus UI | MyBatis-Plus 3.5 |
+| ECharts (dashboard charts) | MySQL 8.0 |
+| Axios (HTTP client) | JWT Authentication (jjwt) |
+| Vue Router + Route Guards | BCrypt Password Hashing |
+| Tailwind CSS | H2 (for testing) |
+| Vite | Maven |
+
+- DevOps: Docker + Docker Compose, Nginx reverse proxy
+
+---
+
+**Slide 4: Core Features (3 slides minimum — list with icons)**
+**1. User Authentication**
+- Register with username/password/nickname/email
+- Login with JWT token (stored in localStorage)
+- Route guards block unauthenticated users
+- Session expiry handling (auto-redirect to login on 401)
+- Password change with BCrypt verification
+- Profile management (nickname, email, avatar upload)
+
+**2. Transaction (Bill) Management**
+- Full CRUD for income & expense records
+- Filter by type (income/expense), date, category
+- Paginated table with reverse chronological sort
+- Quick add via dashboard
+
+**3. Category Management**
+- Full CRUD for income & expense categories
+- Each category has name, type, icon, color, sort order
+- User-scoped custom categories + system defaults
+
+**4. Budget Management**
+- Set monthly budgets per category (YYYY-MM)
+- Track spending against budget limits
+- Budget utilization visual indicators
+
+**5. Dashboard & Data Statistics**
+- Summary cards: Total Income, Total Expenses, Net Balance
+- Monthly trend line/bar chart
+- Expense breakdown pie chart (category distribution)
+- Recent 5 transactions
+- Multi-currency display (CNY, USD, IDR, SGD, AUD, EUR, GBP, JPY, MAD, RUB)
+
+**6. User Profile & Avatar**
+- Edit nickname and email
+- Upload avatar (click/drag-drop, max 2MB, JPEG/PNG/GIF/WebP)
+- File stored on server, served via dedicated endpoint
+- Avatar shown in sidebar and profile page
+
+---
+
+**Slide 5: System Architecture**
+Show a diagram similar to:
+```
+Browser (Vue 3 SPA)
+    ↓ HTTP /api/* + Bearer JWT
+Nginx (port 80 → 3000)
+    ↓ proxy_pass
+Spring Boot Backend (port 8080)
+    ↓ MyBatis-Plus
+MySQL Database (port 3306)
+```
+- 3-tier architecture: Presentation → Business Logic → Data
+- RESTful API with unified Result<T> response wrapper
+- ThreadLocal-based UserContext for per-request user isolation
+- JwtAuthInterceptor validates tokens on all protected endpoints
+- CORS configured for development
+
+---
+
+**Slide 6: Authentication Flow (Sequence Diagram)**
+Show the Login flow step-by-step:
+1. User submits username + password
+2. Frontend POST /api/auth/login
+3. Backend checks user exists, verifies BCrypt hash
+4. Backend generates JWT (userId, username, expiry)
+5. Response: { token, userInfo }
+6. Frontend stores token in localStorage
+7. Axios interceptor attaches "Authorization: Bearer <token>" to every request
+8. JwtAuthInterceptor parses token → UserContext.setUserId()
+
+---
+
+**Slide 7: Database Design (ERD)**
+Present a simplified entity relationship diagram showing 4 tables:
+
+**users** — id, username (UK), password (BCrypt), nickname, email, avatar, status, created_at, deleted (soft delete)
+**categories** — id, user_id (FK), name, type (1=income/2=expense), icon, color, sort_order, deleted
+**transactions** — id, user_id (FK), category_id (FK), type, amount, transaction_date, note, deleted
+**budgets** — id, user_id (FK), category_id (FK), year_month (YYYY-MM), amount, deleted
+
+Relationships:
+- users 1→N categories
+- users 1→N transactions
+- users 1→N budgets
+- categories 1→N transactions
+- categories 1→N budgets
+
+Point out: soft delete (logical deletion), BCrypt password hashing, auto-generated timestamps, MyBatis-Plus auto-fill
+
+---
+
+**Slide 8: API Design (RESTful Endpoints)**
+List all major endpoints in a structured table:
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/user/profile
+- PUT /api/user/profile
+- POST /api/user/avatar (multipart file upload)
+- PUT /api/user/password
+- GET/POST/PUT/DELETE /api/categories
+- GET/POST/PUT/DELETE /api/transactions
+- GET/POST/PUT/DELETE /api/budgets
+- GET /api/reports/summary
+- GET /api/reports/monthly
+- GET /api/reports/category
+- GET /api/currencies (for multi-currency support)
+
+Unified response format: { code, success, message, data }
+
+---
+
+**Slide 9: Frontend Component Tree & Routing**
+Show the component hierarchy:
+- App.vue → Router
+  - /login → Login.vue
+  - /register → Register.vue
+  - DashboardLayout.vue (protected shell)
+    - /dashboard → Dashboard.vue (stats, charts, quick-add)
+    - /transactions → Transactions.vue (CRUD table)
+    - /categories → Categories.vue (CRUD table)
+    - /profile → Profile.vue (avatar upload, edit, change password)
+
+Route guards: router.beforeEach checks localStorage token
+
+---
+
+**Slide 10: Key Technical Highlights**
+Bullet points explaining the best engineering decisions:
+1. **UserContext (ThreadLocal)** — isolates user data per request without passing userId everywhere; prevents data leaks between users
+2. **Unified Result<T> wrapper** — every API response has { code, success, message, data } format for consistent error handling
+3. **Axios interceptors** — request interceptor attaches JWT, response interceptor handles 401/403 globally
+4. **Soft delete (MyBatis-Plus @TableLogic)** — data never truly deleted, recoverable by admin
+5. **Docker Compose orchestration** — one command boots entire stack: database, backend, frontend
+6. **Multi-currency support** — transactions stored in base currency, displayed in user-selected currency via exchange rates
+7. **File upload validation** — server-side type & size checks, unique UUID filenames, persistent volume
+
+---
+
+**Slide 11: Error Handling Strategy**
+- Backend: GlobalExceptionHandler (@RestControllerAdvice) catches all exceptions
+  - BusinessException → 4xx with custom message
+  - Validation errors → 400 with field-level messages
+  - Unknown errors → 500 with "Internal server error"
+- Frontend: Axios response interceptor
+  - 401 → show server message (not hardcoded), redirect to /login (only if not on login page)
+  - 403 → "Access denied"
+  - Other errors → show server message or generic "Error {status}"
+
+---
+
+**Slide 12: Testing**
+- Backend: JUnit 5 + H2 in-memory database
+- Integration tests: CategoryTransactionIntegrationTest
+- Test profile: application-test.yml with H2
+- SQL scripts for test schema setup and reset
+
+---
+
+**Slide 13: Sprint Planning & Development Process**
+- 10-day sprint plan (Day 1 → project setup & DB, Day 2 → auth, Day 3 → CRUD APIs, Day 4 → stats API, Day 5 → frontend auth, Day 6 → transactions UI, Day 7 → categories UI, Day 8 → dashboard + ECharts, Day 9 → integration testing, Day 10 → polish & docs)
+- Monorepo structure on GitHub
+- Feature branches with atomic commits
+
+---
+
+**Slide 14: Demo Screenshots**
+Describe (for actual presentation, insert real screenshots):
+- Login page with animated background
+- Dashboard with summary cards, trend chart, pie chart
+- Transactions table with filters and color-coded rows
+- Categories management page
+- Budget tracking page
+- Profile page with avatar upload (drag & drop)
+- Sidebar with user avatar
+
+---
+
+**Slide 15: Conclusion & Lessons Learned**
+- Successfully built a production-quality full-stack application
+- Learned modern frontend (Vue 3 Composition API, Element Plus, ECharts)
+- Learned backend best practices (Spring Boot, JWT, MyBatis-Plus, exception handling)
+- Learned DevOps basics (Docker, Docker Compose, Nginx)
+- Key takeaway: separation of concerns (controllers → services → mappers → DB) makes code maintainable and testable
+
+---
+
+**Visual Style Guidance:**
+- Use a clean, modern color palette (blues and greens — finance-friendly)
+- Include iconography for each feature
+- Use mermaid-style diagrams for architecture, ERD, and auth flow
+- Minimal text per slide — use bullet points with concise descriptions
+- Include code snippets where appropriate (2-3 lines max)

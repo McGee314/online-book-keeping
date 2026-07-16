@@ -9,6 +9,10 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:secretpassword}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
 
 mybatis-plus:
   configuration:
@@ -28,3 +32,7 @@ jwt:
 logging:
   level:
     com.samudera.bookkeeping: debug
+
+# File upload directory (relative to project root, or absolute)
+app:
+  upload-dir: ${UPLOAD_DIR:uploads}

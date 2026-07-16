@@ -93,14 +93,14 @@ CREATE TABLE IF NOT EXISTS `budgets` (
     `id`           BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
     `user_id`      BIGINT UNSIGNED  NOT NULL                COMMENT 'Owner',
     `category_id`  BIGINT UNSIGNED  NOT NULL                COMMENT 'Target category',
-    `year_month`   CHAR(7)          NOT NULL                COMMENT 'Format: YYYY-MM',
+    `budget_month` CHAR(7)          NOT NULL                COMMENT 'Format: YYYY-MM',
     `amount`       DECIMAL(12, 2)   NOT NULL                COMMENT 'Budget limit',
     `created_at`   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted`      TINYINT(1)       NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     -- A user can only have one budget per category per month
-    UNIQUE KEY `uq_budget_user_category_month` (`user_id`, `category_id`, `year_month`),
+    UNIQUE KEY `uq_budget_user_category_month` (`user_id`, `category_id`, `budget_month`),
     KEY `idx_budgets_user_id`      (`user_id`),
     KEY `idx_budgets_category_id`  (`category_id`),
     CONSTRAINT `fk_budgets_user`
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS `budgets` (
 -- LEFT JOIN transactions t
 --   ON t.category_id = b.category_id
 --  AND t.user_id = b.user_id
---  AND DATE_FORMAT(t.transaction_date, '%Y-%m') = b.year_month
+--  AND DATE_FORMAT(t.transaction_date, '%Y-%m') = b.budget_month
 --  AND t.deleted = 0
--- WHERE b.user_id = ? AND b.year_month = ?
+-- WHERE b.user_id = ? AND b.budget_month = ?
 -- GROUP BY b.id, c.name, b.amount;

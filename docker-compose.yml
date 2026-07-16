@@ -54,6 +54,10 @@ services:
       # JWT configuration
       JWT_SECRET: YourSuperSecretKeyThatIsAtLeast256BitsLong!BookkeepingApp2026
       JWT_EXPIRATION: "86400000"
+      # Upload directory
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads_data:/data/uploads
     depends_on:
       db:
         condition: service_healthy

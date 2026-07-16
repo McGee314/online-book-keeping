@@ -7,6 +7,8 @@ public class StatsSummaryVO {
     private BigDecimal expense;
     private long transactionCount;
     private long categoryCount;
+    private BigDecimal budget;
+    private BigDecimal budgetPercent;
 
     public StatsSummaryVO() {}
 
@@ -25,4 +27,8 @@ public class StatsSummaryVO {
     public void setTransactionCount(long transactionCount) { this.transactionCount = transactionCount; }
     public long getCategoryCount() { return categoryCount; }
     public void setCategoryCount(long categoryCount) { this.categoryCount = categoryCount; }
+    public BigDecimal getBudget() { return budget; }
+    public void setBudget(BigDecimal budget) { this.budget = budget; }
+    public BigDecimal getBudgetPercent() { return budgetPercent; }
+    public void setBudgetPercent(BigDecimal budgetPercent) { this.budgetPercent = budgetPercent; }
 }

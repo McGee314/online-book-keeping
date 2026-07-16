@@ -32,10 +32,15 @@ request.interceptors.response.use(
     if (error.response) {
       const { status } = error.response
       if (status === 401) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        window.location.href = '/login'
-        ElMessage.error('Session expired, please login again')
+        const serverMsg = error.response.data?.message || 'Session expired, please login again'
+        ElMessage.error(serverMsg)
+        // Only redirect if not already on login page (i.e. token expired elsewhere)
+        const isLoginRequest = error.config?.url?.includes('/auth/login')
+        if (!isLoginRequest) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+          window.location.href = '/login'
+        }
       } else if (status === 403) {
         ElMessage.error('Access denied')
       } else {
