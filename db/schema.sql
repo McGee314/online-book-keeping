@@ -92,22 +92,22 @@ CREATE TABLE IF NOT EXISTS `transactions` (
 CREATE TABLE IF NOT EXISTS `budgets` (
     `id`           BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
     `user_id`      BIGINT UNSIGNED  NOT NULL                COMMENT 'Owner',
-    `category_id`  BIGINT UNSIGNED  NOT NULL                COMMENT 'Target category',
+    `category_id`  BIGINT UNSIGNED  DEFAULT NULL            COMMENT 'Target category (NULL = global budget)',
     `budget_month` CHAR(7)          NOT NULL                COMMENT 'Format: YYYY-MM',
     `amount`       DECIMAL(12, 2)   NOT NULL                COMMENT 'Budget limit',
     `created_at`   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted`      TINYINT(1)       NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    -- A user can only have one budget per category per month
-    UNIQUE KEY `uq_budget_user_category_month` (`user_id`, `category_id`, `budget_month`),
+    -- A user can only have one global budget per month, or one budget per category per month
+    UNIQUE KEY `uq_budget_user_category_month` (`user_id`, `budget_month`, `category_id`),
     KEY `idx_budgets_user_id`      (`user_id`),
     KEY `idx_budgets_category_id`  (`category_id`),
     CONSTRAINT `fk_budgets_user`
         FOREIGN KEY (`user_id`)     REFERENCES `users`      (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_budgets_category`
         FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Monthly budgets per category';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Monthly budgets (global or per-category)';
 
 
 -- ============================================================

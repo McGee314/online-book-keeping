@@ -1,6 +1,6 @@
 # ============================================================
-# Bookkeeping System — Docker Compose Orchestration
-# Services: db (MySQL 8.0), backend (Spring Boot), frontend (Nginx)
+# Bookkeeping System — Docker Compose Orchestration (HTTPS)
+# Services: db, backend, frontend (Nginx + SSL), certbot
 # ============================================================
 
 version: "3.8"
@@ -22,9 +22,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # Persistent data storage
       - mysql_data:/var/lib/mysql
-      # Auto-run schema + seed on first start
       - ./db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecretpassword"]
@@ -47,14 +45,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Spring Datasource — connects to db service
       DB_URL: jdbc:mysql://db:3306/bookkeeping_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       DB_USERNAME: root
       DB_PASSWORD: secretpassword
-      # JWT configuration
       JWT_SECRET: YourSuperSecretKeyThatIsAtLeast256BitsLong!BookkeepingApp2026
       JWT_EXPIRATION: "86400000"
-      # Upload directory
       UPLOAD_DIR: /data/uploads
     volumes:
       - uploads_data:/data/uploads
@@ -65,7 +60,7 @@ services:
       - bookkeeping-net
 
   # ==========================================================
-  # Frontend — Nginx serving Vue 3 SPA (port 3000 → 80)
+  # Frontend — Nginx serving Vue SPA (HTTP 80 → HTTPS 443)
   # ==========================================================
   frontend:
     build:
@@ -74,17 +69,36 @@ services:
     container_name: bookkeeping-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Let's Encrypt certificates & webroot (shared with certbot)
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     depends_on:
       - backend
     networks:
       - bookkeeping-net
 
+  # ==========================================================
+  # Certbot — Let's Encrypt SSL certificate renewal
+  # ==========================================================
+  certbot:
+    image: certbot/certbot
+    container_name: bookkeeping-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
 # ============================================================
-# Volumes — persistent data
+# Volumes
 # ============================================================
 volumes:
   mysql_data:
+    driver: local
+  uploads_data:
     driver: local
 
 # ============================================================
