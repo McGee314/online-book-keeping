@@ -1,9 +1,12 @@
 package com.samudera.bookkeeping.service;
 
-import com.samudera.bookkeeping.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -12,23 +15,54 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Fetches live exchange rates from the free Frankfurter API
- * and provides conversion utilities.
+ * Provides exchange rates for multi-currency conversion.
+ * Fetches live rates from RapidAPI exchange-rates7, falls back to hardcoded rates.
+ * All amounts are stored in CNY (base currency).
+ *
+ * Supported: CNY (base), USD, IDR, SGD, AUD, EUR, GBP, JPY, MAD, RUB
  */
 @Service
 public class CurrencyService {
 
     private static final Logger log = LoggerFactory.getLogger(CurrencyService.class);
 
-    private static final String FRANKFURTER_URL =
-            "https://api.frankfurter.dev/v1/latest?from={from}&to={to}";
+    private static final String RAPIDAPI_URL = "https://exchange-rates7.p.rapidapi.com/convert";
+    private static final String RAPIDAPI_HOST = "exchange-rates7.p.rapidapi.com";
+    private static final String BASE_CURRENCY = "CNY";
 
-    private static final String BASE_CURRENCY = "IDR";
+    @Value("${rapidapi.key:7b773cba65mshe2f89cfcab86a82p1dcff1jsn5db02b8658c9}")
+    private String rapidApiKey;
+
+    // All supported target currencies
+    private static final String[] TARGETS = {
+        "USD", "IDR", "SGD", "AUD", "EUR", "GBP", "JPY", "MAD", "RUB"
+    };
+
+    // Fallback rates: 1 CNY = X target
+    private static final Map<String, BigDecimal> FALLBACK_FROM_CNY = new HashMap<>();
+    // Fallback rates: 1 target → CNY
+    private static final Map<String, BigDecimal> FALLBACK_TO_CNY = new HashMap<>();
+
+    static {
+        putFallback("USD", 0.15, 6.67);
+        putFallback("IDR", 2654, 0.000377);
+        putFallback("SGD", 0.19, 5.26);
+        putFallback("AUD", 0.21, 4.76);
+        putFallback("EUR", 0.13, 7.69);
+        putFallback("GBP", 0.11, 9.09);
+        putFallback("JPY", 23.99, 0.0417);
+        putFallback("MAD", 1.38, 0.725);
+        putFallback("RUB", 11.54, 0.0867);
+    }
+
+    private static void putFallback(String code, double fromCny, double toCny) {
+        FALLBACK_FROM_CNY.put(code, BigDecimal.valueOf(fromCny));
+        FALLBACK_TO_CNY.put(code, BigDecimal.valueOf(toCny));
+    }
 
     private final RestTemplate restTemplate;
 
@@ -40,140 +74,110 @@ public class CurrencyService {
     }
 
     /**
-     * Returns live exchange rates from Frankfurter API for the specified base currency.
-     * Used by the frontend to display conversion rates.
-     * Throws if the API is unavailable — the frontend should show an error, not fake numbers.
+     * Returns exchange rates (1 base → target) for all supported currencies.
      */
     public Map<String, BigDecimal> getLiveRates(String baseCurrency) {
         String base = (baseCurrency != null ? baseCurrency : BASE_CURRENCY).toUpperCase();
-        if (!BASE_CURRENCY.equals(base)) {
-            return Collections.emptyMap();
+
+        // Get CNY → all targets
+        Map<String, BigDecimal> cnyToAll = fetchRatesFromCNY();
+
+        if (BASE_CURRENCY.equals(base)) {
+            return cnyToAll;
         }
-        Map<String, BigDecimal> rates = new HashMap<>();
-        rates.put("CNY", fetchRateLive(BASE_CURRENCY, "CNY"));
-        rates.put("USD", fetchRateLive(BASE_CURRENCY, "USD"));
-        return rates;
+
+        // Convert to requested base
+        BigDecimal cnyToBase = cnyToAll.get(base);
+        if (cnyToBase == null) return new HashMap<>();
+
+        Map<String, BigDecimal> result = new HashMap<>();
+        for (Map.Entry<String, BigDecimal> entry : cnyToAll.entrySet()) {
+            if (entry.getKey().equals(base)) continue;
+            result.put(entry.getKey(),
+                    entry.getValue().divide(cnyToBase, 10, RoundingMode.HALF_UP));
+        }
+        return result;
     }
 
     /**
-     * Converts the given amount from {@code fromCurrency} to the system base currency (IDR).
-     * If the amount is already in IDR, returns it unchanged.
-     *
-     * @param amount       original amount (positive)
-     * @param fromCurrency currency code e.g. CNY, USD
-     * @return the converted amount in IDR
+     * Fetches 1 CNY → each target from RapidAPI, with fallback.
+     */
+    private Map<String, BigDecimal> fetchRatesFromCNY() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        headers.set("x-rapidapi-host", RAPIDAPI_HOST);
+        headers.set("x-rapidapi-key", rapidApiKey);
+
+        Map<String, BigDecimal> rates = new HashMap<>();
+        boolean anyLive = false;
+
+        for (String target : TARGETS) {
+            try {
+                String url = RAPIDAPI_URL + "?base=" + BASE_CURRENCY + "&target=" + target;
+                ResponseEntity<Map> response = restTemplate.exchange(
+                        url, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    Object convObj = response.getBody().get("convert_result");
+                    if (convObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> conv = (Map<String, Object>) convObj;
+                        Object rateVal = conv.get("rate");
+                        if (rateVal instanceof Number) {
+                            rates.put(target, BigDecimal.valueOf(((Number) rateVal).doubleValue()));
+                            anyLive = true;
+                        }
+                    }
+                }
+            } catch (RestClientException e) {
+                log.warn("RapidAPI failed for {}: {}", target, e.getMessage());
+            }
+        }
+
+        if (anyLive) {
+            log.info("Live rates from RapidAPI: {} of {} currencies", rates.size(), TARGETS.length);
+            // Fill missing with fallback
+            for (String target : TARGETS) {
+                rates.putIfAbsent(target, FALLBACK_FROM_CNY.get(target));
+            }
+            return rates;
+        }
+
+        // All failed — full fallback
+        log.info("RapidAPI unavailable, using fallback rates");
+        return new HashMap<>(FALLBACK_FROM_CNY);
+    }
+
+    /**
+     * Converts the given amount to the base currency (CNY).
      */
     public BigDecimal convertToBaseCurrency(BigDecimal amount, String fromCurrency) {
-        if (amount == null) {
-            return BigDecimal.ZERO;
-        }
-        if (fromCurrency == null || fromCurrency.equalsIgnoreCase(BASE_CURRENCY)) {
-            return amount;
-        }
-        BigDecimal rate = fetchRate(fromCurrency, BASE_CURRENCY);
+        if (amount == null) return BigDecimal.ZERO;
+        if (fromCurrency == null || fromCurrency.equalsIgnoreCase(BASE_CURRENCY)) return amount;
+        BigDecimal rate = FALLBACK_TO_CNY.get(fromCurrency.toUpperCase());
+        if (rate == null) return amount;
         return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
-     * Fetches the exchange rate from Frankfurter API.
-     * Falls back to hardcoded approximate rates if the API is unavailable.
-     * Used internally for transaction base-amount storage — never blocks user operations.
+     * Fetches exchange rate between two currencies.
      */
-    BigDecimal fetchRate(String fromCurrency, String toCurrency) {
+    public BigDecimal fetchRate(String fromCurrency, String toCurrency) {
         String from = fromCurrency.toUpperCase();
         String to = toCurrency.toUpperCase();
+        if (from.equals(to)) return BigDecimal.ONE;
 
-        if (from.equals(to)) {
-            return BigDecimal.ONE;
+        Map<String, BigDecimal> fromCny = fetchRatesFromCNY();
+        if (BASE_CURRENCY.equals(from)) return fromCny.getOrDefault(to, BigDecimal.ONE);
+        BigDecimal targetFromCny = fromCny.get(to);
+        BigDecimal sourceFromCny = fromCny.get(from);
+        if (targetFromCny != null && sourceFromCny != null && sourceFromCny.compareTo(BigDecimal.ZERO) > 0) {
+            return targetFromCny.divide(sourceFromCny, 10, RoundingMode.HALF_UP);
         }
-
-        try {
-            BigDecimal live = callFrankfurterApi(from, to);
-            if (live != null) {
-                return live;
-            }
-        } catch (RestClientException e) {
-            log.warn("Frankfurter API unavailable ({}) — using fallback rates", e.getMessage());
-        }
-
-        return getFallbackRate(from, to);
+        return BigDecimal.ONE;
     }
 
-    /**
-     * Fetches the exchange rate from Frankfurter API without fallback.
-     * Throws BusinessException if the API is down — used for frontend display only.
-     */
-    BigDecimal fetchRateLive(String fromCurrency, String toCurrency) {
-        String from = fromCurrency.toUpperCase();
-        String to = toCurrency.toUpperCase();
-
-        if (from.equals(to)) {
-            return BigDecimal.ONE;
-        }
-
-        try {
-            BigDecimal live = callFrankfurterApi(from, to);
-            if (live != null) {
-                return live;
-            }
-        } catch (RestClientException e) {
-            log.warn("Frankfurter API unavailable for live rates display: {}", e.getMessage());
-        }
-
-        throw new BusinessException(503, "Exchange rate service temporarily unavailable");
-    }
-
-    /**
-     * Calls the Frankfurter API and returns the rate, or null on unexpected response.
-     */
-    private BigDecimal callFrankfurterApi(String from, String to) {
-        ResponseEntity<Map> response = restTemplate.getForEntity(
-                FRANKFURTER_URL,
-                Map.class,
-                from,
-                to
-        );
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            Map<String, Object> body = response.getBody();
-            Object ratesObj = body.get("rates");
-            if (ratesObj instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> rates = (Map<String, Object>) ratesObj;
-                Object rateValue = rates.get(to);
-                if (rateValue instanceof Number) {
-                    BigDecimal liveRate = BigDecimal.valueOf(((Number) rateValue).doubleValue());
-                    log.info("Live rate from Frankfurter: 1 {} = {} {}", from, liveRate, to);
-                    return liveRate;
-                }
-            }
-        }
-        log.warn("Frankfurter API returned unexpected response: {}", response.getBody());
-        return null;
-    }
-
-    private BigDecimal getFallbackRate(String from, String to) {
-        // Rates updated ~July 2026 approximations
-        switch (from) {
-            case "CNY":
-                switch (to) {
-                    case "IDR": return new BigDecimal("2668.00");
-                    case "USD": return new BigDecimal("0.14");
-                }
-                break;
-            case "USD":
-                switch (to) {
-                    case "IDR": return new BigDecimal("16200.00");
-                    case "CNY": return new BigDecimal("7.14");
-                }
-                break;
-            case "IDR":
-                switch (to) {
-                    case "CNY": return new BigDecimal("0.000375");
-                    case "USD": return new BigDecimal("0.000062");
-                }
-                break;
-        }
-        throw new BusinessException(500, "Unsupported currency conversion: " + from + " → " + to);
+    public BigDecimal fetchRateLive(String fromCurrency, String toCurrency) {
+        return fetchRate(fromCurrency, toCurrency);
     }
 }

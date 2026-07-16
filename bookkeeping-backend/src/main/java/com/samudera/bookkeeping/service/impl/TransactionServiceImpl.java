@@ -70,7 +70,7 @@ public class TransactionServiceImpl extends ServiceImpl<TransactionMapper, Trans
 
         // Currency handling
         String currencyCode = request.getCurrencyCode() != null
-                ? request.getCurrencyCode().toUpperCase() : "IDR";
+                ? request.getCurrencyCode().toUpperCase() : "CNY";
         transaction.setCurrencyCode(currencyCode);
         BigDecimal baseAmount = currencyService.convertToBaseCurrency(request.getAmount(), currencyCode);
         transaction.setBaseAmount(baseAmount);
@@ -94,7 +94,7 @@ public class TransactionServiceImpl extends ServiceImpl<TransactionMapper, Trans
         transaction.setAmount(request.getAmount());
 
         String currencyCode = request.getCurrencyCode() != null
-                ? request.getCurrencyCode().toUpperCase() : "IDR";
+                ? request.getCurrencyCode().toUpperCase() : "CNY";
         transaction.setCurrencyCode(currencyCode);
         BigDecimal baseAmount = currencyService.convertToBaseCurrency(request.getAmount(), currencyCode);
         transaction.setBaseAmount(baseAmount);

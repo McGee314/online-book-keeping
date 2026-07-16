@@ -13,6 +13,8 @@ import java.util.Map;
 /**
  * Exposes live exchange rates so the frontend can display
  * real-time conversion data without hardcoded values.
+ *
+ * Supported: CNY (base) → USD.
  */
 @RestController
 @RequestMapping("/api/currency")
@@ -25,11 +27,11 @@ public class CurrencyController {
     }
 
     /**
-     * GET /api/currency/rates?base=IDR
-     * Returns exchange rates for IDR against CNY and USD.
+     * GET /api/currency/rates?base=CNY
+     * Returns exchange rates for CNY against USD.
      */
     @GetMapping("/rates")
-    public Result<Map<String, BigDecimal>> getRates(@RequestParam(defaultValue = "IDR") String base) {
+    public Result<Map<String, BigDecimal>> getRates(@RequestParam(defaultValue = "CNY") String base) {
         Map<String, BigDecimal> rates = currencyService.getLiveRates(base);
         return Result.success(rates);
     }
