@@ -20,6 +20,9 @@ RUN npm run build
 # ---------- Stage 2: Serve ----------
 FROM nginx:alpine
 
+# Install openssl for self-signed fallback SSL certificate generation
+RUN apk add --no-cache openssl
+
 # Remove default nginx static content
 RUN rm -rf /usr/share/nginx/html/*
 
